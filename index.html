@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Libro Mayor · Sistema Contable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#EEF0E4;
+    --paper-card:#F8F7EF;
+    --ink:#16281C;
+    --ink-soft:#3A4A3D;
+    --rule-blue:#7590A6;
+    --rule-blue-soft:#c9d6de;
+    --rule-red:#A23B3B;
+    --gold:#9C7A2E;
+    --gold-soft:#e8dcb8;
+    --credit:#2F6F4F;
+    --credit-soft:#dcebe1;
+    --debit:#8a3b2b;
+    --debit-soft:#f2ddd4;
+    --line:#c9c6b4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Lora', serif;
+    background-image:
+      linear-gradient(var(--paper), var(--paper)),
+      repeating-linear-gradient(180deg, transparent, transparent 27px, var(--rule-blue-soft) 28px);
+    background-blend-mode:normal;
+  }
+  .mono{font-family:'JetBrains Mono', monospace;}
+  header.top{
+    background:var(--ink);
+    color:var(--paper-card);
+    padding:22px 28px 0 28px;
+    position:sticky; top:0; z-index:50;
+    border-bottom:4px solid var(--gold);
+  }
+  header.top .brand{
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    padding-bottom:14px;
+  }
+  header.top h1{
+    font-family:'Lora',serif; font-weight:700; font-size:1.5rem; margin:0;
+    letter-spacing:.01em;
+  }
+  header.top .ledger-no{
+    font-family:'JetBrains Mono',monospace; font-size:.78rem; color:var(--gold-soft);
+    opacity:.85;
+  }
+  nav.tabs{
+    display:flex; gap:4px; overflow-x:auto; padding:0 0 0 0;
+  }
+  nav.tabs button{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.72rem;
+    letter-spacing:.03em;
+    background:#0e1a12;
+    color:#c9d1c3;
+    border:1px solid #3b4a3d;
+    border-bottom:none;
+    padding:10px 16px;
+    border-radius:6px 6px 0 0;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s, color .15s;
+  }
+  nav.tabs button:hover{ background:#1c2e21; color:#fff; }
+  nav.tabs button.active{
+    background:var(--paper);
+    color:var(--ink);
+    border-color:var(--line);
+    font-weight:600;
+  }
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 22px 90px 22px;
+  }
+  section.tab{ display:none; }
+  section.tab.active{ display:block; animation:fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:none;} }
+
+  h2.section-title{
+    font-size:1.25rem;
+    margin:0 0 4px 0;
+    padding-left:14px;
+    border-left:4px solid var(--rule-red);
+  }
+  p.section-sub{
+    margin:2px 0 20px 18px;
+    color:var(--ink-soft);
+    font-size:.92rem;
+  }
+
+  .card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-left:4px solid var(--rule-red);
+    border-radius:2px;
+    padding:18px 20px;
+    margin-bottom:22px;
+    box-shadow:0 1px 0 rgba(0,0,0,.03);
+  }
+  .card h3{
+    margin:0 0 14px 0;
+    font-size:1rem;
+    color:var(--ink);
+  }
+  .grid-form{
+    display:grid;
+    grid-template-columns:110px 1fr 140px;
+    gap:10px;
+    align-items:end;
+  }
+  label{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.68rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  input, select{
+    width:100%;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.85rem;
+    padding:8px 9px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input:focus, select:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  button.btn{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.78rem;
+    letter-spacing:.02em;
+    padding:9px 16px;
+    border-radius:3px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper-card);
+    cursor:pointer;
+    transition:transform .08s, background .15s;
+  }
+  button.btn:hover{ background:#274332; }
+  button.btn:active{ transform:translateY(1px); }
+  button.btn.gold{ background:var(--gold); border-color:var(--gold); color:#241b06; }
+  button.btn.gold:hover{ background:#b28f3c; }
+  button.btn.outline{ background:transparent; color:var(--ink); }
+  button.btn.outline:hover{ background:rgba(0,0,0,.05); }
+  button.btn.danger{ background:var(--rule-red); border-color:var(--rule-red); color:#fff; }
+  button.btn.danger:hover{ background:#8a2f2f; }
+  button.btn.small{ padding:4px 9px; font-size:.68rem; }
+  button.btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  table.ledger{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.8rem;
+  }
+  table.ledger th{
+    text-align:left;
+    background:var(--ink);
+    color:var(--paper-card);
+    padding:8px 10px;
+    font-weight:600;
+    letter-spacing:.02em;
+    position:sticky; top:0;
+  }
+  table.ledger td{
+    padding:6px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  table.ledger tr:nth-child(even) td{ background:rgba(0,0,0,.02); }
+  table.ledger td.num, table.ledger th.num{ text-align:right; }
+  table.ledger tfoot td{
+    font-weight:700;
+    border-top:2px solid var(--ink);
+    background:var(--gold-soft);
+  }
+  .tag{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.65rem;
+    padding:2px 7px;
+    border-radius:10px;
+    letter-spacing:.03em;
+  }
+  .tag.Activo{ background:var(--credit-soft); color:var(--credit); }
+  .tag.Pasivo{ background:var(--debit-soft); color:var(--debit); }
+  .tag.Capital{ background:var(--gold-soft); color:#6b5320; }
+  .tag.Ingreso{ background:#dbe7f0; color:#2b5470; }
+  .tag.Gasto{ background:#ece0e0; color:#7a3a3a; }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+  .toolbar input[type=text]{ max-width:220px; }
+  .toolbar select{ max-width:160px; }
+  .spacer{ flex:1; }
+
+  .balance-check{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.85rem;
+    padding:10px 14px;
+    border-radius:3px;
+    margin-bottom:16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .balance-check.ok{ background:var(--credit-soft); color:var(--credit); border:1px solid var(--credit); }
+  .balance-check.bad{ background:var(--debit-soft); color:var(--debit); border:1px solid var(--debit); }
+  .balance-check .dot{ width:10px; height:10px; border-radius:50%; background:currentColor; }
+
+  .diario-line-row{
+    display:grid;
+    grid-template-columns:2fr 110px 110px 34px;
+    gap:8px;
+    margin-bottom:6px;
+    align-items:center;
+  }
+  .diario-line-row.header{ font-family:'JetBrains Mono',monospace; font-size:.65rem; text-transform:uppercase; color:var(--ink-soft); }
+  .remove-line{
+    background:transparent; border:1px solid var(--rule-red); color:var(--rule-red);
+    border-radius:3px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:.8rem;
+    width:30px; height:30px;
+  }
+  .asiento-block{
+    border:1px solid var(--line);
+    border-left:4px solid var(--gold);
+    background:var(--paper-card);
+    padding:12px 16px;
+    margin-bottom:14px;
+    border-radius:2px;
+  }
+  .asiento-block .meta{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:'JetBrains Mono',monospace; font-size:.72rem; color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .partida-financiera{
+    margin-bottom:26px;
+  }
+  .partida-financiera h4{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.78rem;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    background:var(--ink);
+    color:var(--paper-card);
+    padding:6px 10px;
+    margin:0 0 6px 0;
+  }
+  .linea-cuenta{
+    display:flex; justify-content:space-between;
+    padding:4px 10px;
+    font-family:'JetBrains Mono',monospace; font-size:.82rem;
+    border-bottom:1px dotted var(--line);
+  }
+  .linea-cuenta.subtotal{ font-weight:700; border-bottom:2px solid var(--ink); border-top:1px solid var(--ink); background:rgba(0,0,0,.03); }
+  .linea-cuenta.contra{ padding-left:22px; color:var(--debit); }
+  .resultado-final{
+    margin-top:10px;
+    padding:12px 16px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:1rem;
+    font-weight:700;
+    display:flex; justify-content:space-between;
+  }
+  .resultado-final.utilidad{ background:var(--credit-soft); color:var(--credit); }
+  .resultado-final.perdida{ background:var(--debit-soft); color:var(--debit); }
+
+  .bg-columns{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media (max-width: 820px){ .bg-columns{ grid-template-columns:1fr; } .grid-form{ grid-template-columns:1fr; } }
+
+  .empty-note{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.8rem;
+    color:var(--ink-soft);
+    padding:14px;
+    border:1px dashed var(--line);
+    text-align:center;
+  }
+  .export-row{ display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 4px 0; }
+  .mayor-account{ margin-bottom:26px; }
+  .mayor-account .head{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.85rem;
+    font-weight:700;
+    background:var(--gold-soft);
+    padding:7px 12px;
+    border:1px solid var(--gold);
+    display:flex; justify-content:space-between;
+  }
+  footer.foot{
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.68rem;
+    color:var(--ink-soft);
+    padding:20px;
+    opacity:.7;
+  }
+  .checklist-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 14px; border:1px solid var(--line); border-radius:3px; margin-bottom:8px;
+    font-family:'JetBrains Mono',monospace; font-size:.82rem; background:var(--paper-card);
+  }
+  .checklist-item .status{ font-weight:700; }
+  .checklist-item.ok .status{ color:var(--credit); }
+  .checklist-item.bad .status{ color:var(--debit); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Libro Mayor</h1>
+    <span class="ledger-no mono">Ejercicio contable · registro en memoria de sesión</span>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="catalogo" class="active">01 · Catálogo de Cuentas</button>
+    <button data-tab="diario">02 · Diario</button>
+    <button data-tab="mayor">03 · Mayor</button>
+    <button data-tab="bcomp">04 · Bal. Comprobación</button>
+    <button data-tab="eresultados">05 · Estado de Resultados</button>
+    <button data-tab="bgeneral">06 · Balance General</button>
+    <button data-tab="cuadre">07 · Cuadre General</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ===================== CATALOGO ===================== -->
+  <section class="tab active" id="tab-catalogo">
+    <h2 class="section-title">Catálogo de Cuentas</h2>
+    <p class="section-sub">Cuentas de Activo, Pasivo, Capital, Ingresos y Gastos. Agrega o elimina cuentas según lo requiera el ejercicio.</p>
+
+    <div class="card">
+      <h3>Dar de alta una cuenta</h3>
+      <div class="grid-form">
+        <div>
+          <label>Código</label>
+          <input type="text" id="nuevo-codigo" placeholder="1116" class="mono">
+        </div>
+        <div>
+          <label>Nombre de la cuenta</label>
+          <input type="text" id="nuevo-nombre" placeholder="Ej. Fondo de Ahorro">
+        </div>
+        <div>
+          <label>Grupo</label>
+          <select id="nuevo-grupo">
+            <option value="Activo">Activo</option>
+            <option value="Pasivo">Pasivo</option>
+            <option value="Capital">Capital</option>
+            <option value="Ingreso">Ingreso</option>
+            <option value="Gasto">Gasto</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-form" style="margin-top:10px;">
+        <div>
+          <label>Naturaleza</label>
+          <select id="nuevo-naturaleza">
+            <option value="Deudora">Deudora</option>
+            <option value="Acreedora">Acreedora</option>
+          </select>
+        </div>
+        <div></div>
+        <div><button class="btn gold" onclick="agregarCuenta()">Agregar cuenta</button></div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="filtro-texto" placeholder="Buscar por código o nombre..." oninput="renderCatalogo()">
+      <select id="filtro-grupo" onchange="renderCatalogo()">
+        <option value="">Todos los grupos</option>
+        <option value="Activo">Activo</option>
+        <option value="Pasivo">Pasivo</option>
+        <option value="Capital">Capital</option>
+        <option value="Ingreso">Ingreso</option>
+        <option value="Gasto">Gasto</option>
+      </select>
+      <div class="spacer"></div>
+      <span class="mono" id="conteo-cuentas" style="font-size:.78rem;color:var(--ink-soft);"></span>
+    </div>
+
+    <div style="max-height:520px; overflow:auto; border:1px solid var(--line);">
+      <table class="ledger" id="tabla-catalogo">
+        <thead>
+          <tr><th>Código</th><th>Nombre de la cuenta</th><th>Grupo</th><th>Naturaleza</th><th></th></tr>
+        </thead>
+        <tbody id="cuerpo-catalogo"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== DIARIO ===================== -->
+  <section class="tab" id="tab-diario">
+    <h2 class="section-title">Diario General</h2>
+    <p class="section-sub">Registra cada partida indicando qué cuentas se cargan (debe) y qué cuentas se abonan (haber). La partida sólo se guarda si carga y abono suman igual.</p>
+
+    <div class="card">
+      <h3>Nueva partida</h3>
+      <div class="grid-form" style="grid-template-columns:160px 1fr;">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="asiento-fecha">
+        </div>
+        <div>
+          <label>Concepto</label>
+          <input type="text" id="asiento-concepto" placeholder="Ej. Venta de mercancía al contado">
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label style="color:var(--debit);">Cuentas cargadas (Debe)</label>
+        <div id="lineas-cargo"></div>
+        <button class="btn outline small" onclick="agregarLinea('cargo')">+ agregar cuenta cargada</button>
+      </div>
+
+      <div style="margin-top:18px;">
+        <label style="color:var(--credit);">Cuentas abonadas (Haber)</label>
+        <div id="lineas-abono"></div>
+        <button class="btn outline small" onclick="agregarLinea('abono')">+ agregar cuenta abonada</button>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:20px; align-items:center;">
+        <span class="mono">Suma Cargos: <strong id="suma-cargo" class="mono">0.00</strong></span>
+        <span class="mono">Suma Abonos: <strong id="suma-abono" class="mono">0.00</strong></span>
+        <span id="estado-cuadre" class="mono"></span>
+      </div>
+
+      <div style="margin-top:14px;">
+        <button class="btn gold" id="btn-guardar-asiento" onclick="guardarAsiento()">Guardar partida</button>
+        <button class="btn outline" onclick="limpiarFormAsiento()">Limpiar</button>
+      </div>
+    </div>
+
+    <h3 style="font-family:'JetBrains Mono',monospace; font-size:.85rem; text-transform:uppercase; letter-spacing:.04em; margin-top:30px;">Partidas registradas</h3>
+    <div id="lista-asientos"></div>
+  </section>
+
+  <!-- ===================== MAYOR ===================== -->
+  <section class="tab" id="tab-mayor">
+    <h2 class="section-title">Libro Mayor</h2>
+    <p class="section-sub">El sistema traslada automáticamente los movimientos del Diario a la cuenta correspondiente.</p>
+    <div class="export-row">
+      <button class="btn" onclick="renderMayor()">Actualizar Mayor</button>
+      <button class="btn gold" onclick="exportarMayor()">Descargar Mayor en Excel</button>
+    </div>
+    <div id="contenedor-mayor"></div>
+  </section>
+
+  <!-- ===================== BALANCE DE COMPROBACION ===================== -->
+  <section class="tab" id="tab-bcomp">
+    <h2 class="section-title">Balance de Comprobación</h2>
+    <p class="section-sub">Sumas y saldos de todas las cuentas con movimiento.</p>
+    <div class="export-row">
+      <button class="btn" onclick="renderBalanceComprobacion()">Generar Balance de Comprobación</button>
+      <button class="btn gold" onclick="exportarBalanceComprobacion()">Descargar en Excel</button>
+    </div>
+    <div id="contenedor-bcomp"></div>
+  </section>
+
+  <!-- ===================== ESTADO DE RESULTADOS ===================== -->
+  <section class="tab" id="tab-eresultados">
+    <h2 class="section-title">Estado de Resultados</h2>
+    <p class="section-sub">Ingresos y gastos del ejercicio, y utilidad o pérdida resultante.</p>
+    <div class="export-row">
+      <button class="btn" onclick="renderEstadoResultados()">Generar Estado de Resultados</button>
+      <button class="btn gold" onclick="exportarEstadoResultados()">Descargar en Excel</button>
+    </div>
+    <div id="contenedor-eresultados"></div>
+  </section>
+
+  <!-- ===================== BALANCE GENERAL ===================== -->
+  <section class="tab" id="tab-bgeneral">
+    <h2 class="section-title">Balance General</h2>
+    <p class="section-sub">Activo contra Pasivo más Capital, incluyendo el resultado del ejercicio.</p>
+    <div class="export-row">
+      <button class="btn" onclick="renderBalanceGeneral()">Generar Balance General</button>
+      <button class="btn gold" onclick="exportarBalanceGeneral()">Descargar en Excel</button>
+    </div>
+    <div id="contenedor-bgeneral"></div>
+  </section>
+
+  <!-- ===================== CUADRE GENERAL ===================== -->
+  <section class="tab" id="tab-cuadre">
+    <h2 class="section-title">Cuadre General de Estados Financieros</h2>
+    <p class="section-sub">Verificación de que el Diario, el Balance de Comprobación y el Balance General estén cuadrados.</p>
+    <div id="contenedor-cuadre"></div>
+
+    <div class="card" style="margin-top:30px; border-left-color:var(--rule-red);">
+      <h3>Cerrar ejercicio</h3>
+      <p style="font-size:.85rem; color:var(--ink-soft); margin-top:0;">
+        Esto borra todas las partidas del Diario (y por lo tanto el Mayor y los estados financieros) para comenzar un nuevo ejercicio.
+        El catálogo de cuentas se conserva.
+      </p>
+      <button class="btn danger" onclick="nuevoEjercicio()">Borrar Diario e iniciar nuevo ejercicio</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">Sistema Contable · los datos se conservan mientras esta página permanezca abierta</footer>
+
+<script>
+/* ============================================================
+   ESTADO / DATOS
+   ============================================================ */
+
+let cuentas = [
+  // ACTIVO
+  {codigo:'1101', nombre:'Caja', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1102', nombre:'Bancos', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1103', nombre:'Caja Chica', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1104', nombre:'Fondo Fijo de Caja', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1105', nombre:'Inversiones Temporales', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1106', nombre:'Clientes', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1107', nombre:'Documentos por Cobrar', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1108', nombre:'Deudores Diversos', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1109', nombre:'Funcionarios y Empleados', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1110', nombre:'IVA Acreditable', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1111', nombre:'Anticipo de ISR', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1112', nombre:'Anticipo a Proveedores', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1113', nombre:'Documentos Descontados', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1114', nombre:'Estimación para Cuentas Incobrables', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1201', nombre:'Almacén / Inventarios', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1202', nombre:'Mercancías en Tránsito', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1203', nombre:'Materia Prima', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1204', nombre:'Producción en Proceso', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1205', nombre:'Productos Terminados', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1206', nombre:'Envases y Empaques', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1207', nombre:'Refacciones y Accesorios', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1208', nombre:'Papelería y Útiles', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1209', nombre:'Propaganda y Publicidad Pagada por Anticipado', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1210', nombre:'Primas de Seguros Pagadas por Anticipado', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1211', nombre:'Rentas Pagadas por Anticipado', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1212', nombre:'Intereses Pagados por Anticipado', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1301', nombre:'Terrenos', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1302', nombre:'Edificios', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1303', nombre:'Depreciación Acumulada de Edificios', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1304', nombre:'Mobiliario y Equipo de Oficina', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1305', nombre:'Depreciación Acumulada de Mobiliario y Equipo', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1306', nombre:'Equipo de Cómputo', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1307', nombre:'Depreciación Acumulada de Equipo de Cómputo', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1308', nombre:'Equipo de Transporte', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1309', nombre:'Depreciación Acumulada de Equipo de Transporte', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1310', nombre:'Equipo de Reparto', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1311', nombre:'Depreciación Acumulada de Equipo de Reparto', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1312', nombre:'Maquinaria y Equipo', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1313', nombre:'Depreciación Acumulada de Maquinaria y Equipo', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1314', nombre:'Herramienta', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1315', nombre:'Depreciación Acumulada de Herramienta', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1401', nombre:'Gastos de Instalación', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1402', nombre:'Amortización Acumulada de Gastos de Instalación', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1403', nombre:'Gastos de Organización', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1404', nombre:'Gastos Preoperativos', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1405', nombre:'Amortización Acumulada de Gastos Preoperativos', grupo:'Activo', naturaleza:'Acreedora'},
+  {codigo:'1406', nombre:'Marcas y Patentes', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1407', nombre:'Crédito Mercantil', grupo:'Activo', naturaleza:'Deudora'},
+  {codigo:'1408', nombre:'Depósitos en Garantía', grupo:'Activo', naturaleza:'Deudora'},
+
+  // PASIVO
+  {codigo:'2101', nombre:'Proveedores', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2102', nombre:'Documentos por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2103', nombre:'Acreedores Diversos', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2104', nombre:'IVA Trasladado', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2105', nombre:'IVA por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2106', nombre:'ISR por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2107', nombre:'PTU por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2108', nombre:'Impuestos y Derechos por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2109', nombre:'Sueldos y Salarios por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2110', nombre:'Honorarios por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2111', nombre:'Comisiones por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2112', nombre:'Fletes por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2113', nombre:'Retenciones de ISR por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2114', nombre:'IMSS por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2115', nombre:'INFONAVIT por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2116', nombre:'Cuotas Sindicales por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2117', nombre:'Rentas Cobradas por Anticipado', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2118', nombre:'Intereses Cobrados por Anticipado', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2119', nombre:'Anticipo de Clientes', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2120', nombre:'Dividendos por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2201', nombre:'Documentos por Pagar a Largo Plazo', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2202', nombre:'Hipotecas por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2203', nombre:'Acreedores Hipotecarios', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2204', nombre:'Obligaciones por Pagar', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2205', nombre:'Provisión para Obligaciones Laborales', grupo:'Pasivo', naturaleza:'Acreedora'},
+  {codigo:'2206', nombre:'Créditos Diferidos', grupo:'Pasivo', naturaleza:'Acreedora'},
+
+  // CAPITAL
+  {codigo:'3101', nombre:'Capital Social', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3102', nombre:'Reserva Legal', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3103', nombre:'Utilidades Acumuladas', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3104', nombre:'Pérdidas Acumuladas', grupo:'Capital', naturaleza:'Deudora'},
+  {codigo:'3105', nombre:'Utilidad del Ejercicio', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3106', nombre:'Pérdida del Ejercicio', grupo:'Capital', naturaleza:'Deudora'},
+  {codigo:'3107', nombre:'Aportaciones para Futuros Aumentos de Capital', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3108', nombre:'Prima en Venta de Acciones', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3109', nombre:'Superávit por Revaluación de Activos', grupo:'Capital', naturaleza:'Acreedora'},
+  {codigo:'3110', nombre:'Donaciones Recibidas', grupo:'Capital', naturaleza:'Acreedora'},
+
+  // INGRESOS
+  {codigo:'4101', nombre:'Ventas', grupo:'Ingreso', naturaleza:'Acreedora'},
+  {codigo:'4102', nombre:'Devoluciones sobre Ventas', grupo:'Ingreso', naturaleza:'Deudora'},
+  {codigo:'4103', nombre:'Descuentos sobre Ventas', grupo:'Ingreso', naturaleza:'Deudora'},
+  {codigo:'4104', nombre:'Productos Financieros', grupo:'Ingreso', naturaleza:'Acreedora'},
+  {codigo:'4105', nombre:'Otros Ingresos', grupo:'Ingreso', naturaleza:'Acreedora'},
+
+  // GASTOS
+  {codigo:'5101', nombre:'Compras', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5102', nombre:'Devoluciones sobre Compras', grupo:'Gasto', naturaleza:'Acreedora'},
+  {codigo:'5103', nombre:'Descuentos sobre Compras', grupo:'Gasto', naturaleza:'Acreedora'},
+  {codigo:'5104', nombre:'Gastos de Venta', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5105', nombre:'Gastos de Administración', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5106', nombre:'Gastos Financieros', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5107', nombre:'Sueldos y Salarios', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5108', nombre:'Depreciaciones y Amortizaciones del Ejercicio', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5109', nombre:'Impuestos y Derechos', grupo:'Gasto', naturaleza:'Deudora'},
+  {codigo:'5110', nombre:'Otros Gastos', grupo:'Gasto', naturaleza:'Deudora'},
+];
+
+let asientos = []; // {id, fecha, concepto, cargos:[{codigo,importe}], abonos:[{codigo,importe}]}
+let contadorAsientos = 1;
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+
+function fmt(n){
+  n = Number(n) || 0;
+  return n.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function cuentaPorCodigo(cod){
+  return cuentas.find(c => c.codigo === cod);
+}
+function nombreCuenta(cod){
+  const c = cuentaPorCodigo(cod);
+  return c ? (c.codigo + ' · ' + c.nombre) : cod;
+}
+
+/* Movimientos totales de una cuenta a partir del diario */
+function movimientosCuenta(codigo){
+  let cargo = 0, abono = 0;
+  const detalle = [];
+  asientos.forEach(a => {
+    a.cargos.forEach(l => {
+      if(l.codigo === codigo){ cargo += l.importe; detalle.push({fecha:a.fecha, concepto:a.concepto, cargo:l.importe, abono:0}); }
+    });
+    a.abonos.forEach(l => {
+      if(l.codigo === codigo){ abono += l.importe; detalle.push({fecha:a.fecha, concepto:a.concepto, cargo:0, abono:l.importe}); }
+    });
+  });
+  return {cargo, abono, detalle};
+}
+
+/* Saldo "normal" de una cuenta: positivo cuando el saldo está del lado de su naturaleza */
+function saldoNormal(cuenta){
+  const {cargo, abono} = movimientosCuenta(cuenta.codigo);
+  return cuenta.naturaleza === 'Deudora' ? (cargo - abono) : (abono - cargo);
+}
+
+/* ============================================================
+   NAVEGACION DE PESTAÑAS
+   ============================================================ */
+document.getElementById('tabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-tab]');
+  if(!btn) return;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('section.tab').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  const tab = btn.dataset.tab;
+  if(tab === 'mayor') renderMayor();
+  if(tab === 'bcomp') renderBalanceComprobacion();
+  if(tab === 'eresultados') renderEstadoResultados();
+  if(tab === 'bgeneral') renderBalanceGeneral();
+  if(tab === 'cuadre') renderCuadre();
+});
+
+/* ============================================================
+   CATALOGO DE CUENTAS
+   ============================================================ */
+function agregarCuenta(){
+  const codigo = document.getElementById('nuevo-codigo').value.trim();
+  const nombre = document.getElementById('nuevo-nombre').value.trim();
+  const grupo = document.getElementById('nuevo-grupo').value;
+  const naturaleza = document.getElementById('nuevo-naturaleza').value;
+  if(!codigo || !nombre){
+    alert('Captura el código y el nombre de la cuenta.');
+    return;
+  }
+  if(cuentaPorCodigo(codigo)){
+    alert('Ya existe una cuenta con ese código.');
+    return;
+  }
+  cuentas.push({codigo, nombre, grupo, naturaleza});
+  cuentas.sort((a,b) => a.codigo.localeCompare(b.codigo));
+  document.getElementById('nuevo-codigo').value = '';
+  document.getElementById('nuevo-nombre').value = '';
+  renderCatalogo();
+  poblarSelectsCuentas();
+}
+
+function borrarCuenta(codigo){
+  const enUso = asientos.some(a =>
+    a.cargos.some(l => l.codigo === codigo) || a.abonos.some(l => l.codigo === codigo)
+  );
+  if(enUso){
+    alert('No se puede eliminar: la cuenta tiene movimientos registrados en el Diario.');
+    return;
+  }
+  if(!confirm('¿Eliminar la cuenta ' + codigo + '?')) return;
+  cuentas = cuentas.filter(c => c.codigo !== codigo);
+  renderCatalogo();
+  poblarSelectsCuentas();
+}
+
+function renderCatalogo(){
+  const texto = (document.getElementById('filtro-texto').value || '').toLowerCase();
+  const grupoSel = document.getElementById('filtro-grupo').value;
+  const filtradas = cuentas.filter(c => {
+    const okTexto = c.codigo.toLowerCase().includes(texto) || c.nombre.toLowerCase().includes(texto);
+    const okGrupo = !grupoSel || c.grupo === grupoSel;
+    return okTexto && okGrupo;
+  });
+  const cuerpo = document.getElementById('cuerpo-catalogo');
+  cuerpo.innerHTML = filtradas.map(c => `
+    <tr>
+      <td>${c.codigo}</td>
+      <td style="font-family:'Lora',serif;">${c.nombre}</td>
+      <td><span class="tag ${c.grupo}">${c.grupo}</span></td>
+      <td>${c.naturaleza}</td>
+      <td><button class="btn danger small" onclick="borrarCuenta('${c.codigo}')">Borrar</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="5"><div class="empty-note">No hay cuentas que coincidan con el filtro.</div></td></tr>`;
+
+  const totalActPasCap = cuentas.filter(c => ['Activo','Pasivo','Capital'].includes(c.grupo)).length;
+  document.getElementById('conteo-cuentas').textContent =
+    `${cuentas.length} cuentas en catálogo (${totalActPasCap} de Activo/Pasivo/Capital) · ${filtradas.length} mostradas`;
+}
+
+/* ============================================================
+   DIARIO
+   ============================================================ */
+function poblarSelectsCuentas(){
+  document.querySelectorAll('select.select-cuenta').forEach(sel => {
+    const actual = sel.value;
+    sel.innerHTML = cuentas
+      .slice()
+      .sort((a,b) => a.codigo.localeCompare(b.codigo))
+      .map(c => `<option value="${c.codigo}">${c.codigo} · ${c.nombre}</option>`).join('');
+    if(actual && cuentaPorCodigo(actual)) sel.value = actual;
+  });
+}
+
+function filaLinea(tipo){
+  const div = document.createElement('div');
+  div.className = 'diario-line-row';
+  div.innerHTML = `
+    <select class="select-cuenta"></select>
+    <input type="number" class="mono input-importe" placeholder="0.00" min="0" step="0.01" oninput="actualizarSumas()">
+    <span class="mono" style="font-size:.7rem;color:var(--ink-soft);">MXN</span>
+    <button class="remove-line" onclick="this.closest('.diario-line-row').remove(); actualizarSumas();">×</button>
+  `;
+  return div;
+}
+
+function agregarLinea(tipo){
+  const cont = document.getElementById(tipo === 'cargo' ? 'lineas-cargo' : 'lineas-abono');
+  cont.appendChild(filaLinea(tipo));
+  poblarSelectsCuentas();
+}
+
+function leerLineas(tipo){
+  const cont = document.getElementById(tipo === 'cargo' ? 'lineas-cargo' : 'lineas-abono');
+  const filas = [...cont.querySelectorAll('.diario-line-row')];
+  return filas.map(f => ({
+    codigo: f.querySelector('.select-cuenta').value,
+    importe: parseFloat(f.querySelector('.input-importe').value) || 0
+  })).filter(l => l.codigo && l.importe > 0);
+}
+
+function actualizarSumas(){
+  const cargos = leerLineas('cargo');
+  const abonos = leerLineas('abono');
+  const sc = cargos.reduce((s,l) => s + l.importe, 0);
+  const sa = abonos.reduce((s,l) => s + l.importe, 0);
+  document.getElementById('suma-cargo').textContent = fmt(sc);
+  document.getElementById('suma-abono').textContent = fmt(sa);
+  const estado = document.getElementById('estado-cuadre');
+  const btn = document.getElementById('btn-guardar-asiento');
+  if(sc > 0 && Math.abs(sc - sa) < 0.005){
+    estado.textContent = '✓ Partida cuadrada';
+    estado.style.color = 'var(--credit)';
+    btn.disabled = false;
+  } else {
+    estado.textContent = sc === 0 && sa === 0 ? '' : '✗ Cargos y abonos no cuadran';
+    estado.style.color = 'var(--debit)';
+    btn.disabled = true;
+  }
+}
+
+function guardarAsiento(){
+  const fecha = document.getElementById('asiento-fecha').value;
+  const concepto = document.getElementById('asiento-concepto').value.trim();
+  const cargos = leerLineas('cargo');
+  const abonos = leerLineas('abono');
+  const sc = cargos.reduce((s,l) => s + l.importe, 0);
+  const sa = abonos.reduce((s,l) => s + l.importe, 0);
+
+  if(!fecha){ alert('Indica la fecha de la partida.'); return; }
+  if(!concepto){ alert('Describe el concepto de la partida.'); return; }
+  if(cargos.length === 0 || abonos.length === 0){ alert('Agrega al menos una cuenta cargada y una abonada.'); return; }
+  if(Math.abs(sc - sa) > 0.005 || sc === 0){ alert('Los cargos y los abonos deben sumar lo mismo y ser mayores a cero.'); return; }
+
+  asientos.push({id: contadorAsientos++, fecha, concepto, cargos, abonos});
+  limpiarFormAsiento();
+  renderListaAsientos();
+}
+
+function limpiarFormAsiento(){
+  document.getElementById('asiento-concepto').value = '';
+  document.getElementById('lineas-cargo').innerHTML = '';
+  document.getElementById('lineas-abono').innerHTML = '';
+  agregarLinea('cargo');
+  agregarLinea('abono');
+  actualizarSumas();
+}
+
+function borrarAsiento(id){
+  if(!confirm('¿Eliminar esta partida del Diario?')) return;
+  asientos = asientos.filter(a => a.id !== id);
+  renderListaAsientos();
+}
+
+function renderListaAsientos(){
+  const cont = document.getElementById('lista-asientos');
+  if(asientos.length === 0){
+    cont.innerHTML = `<div class="empty-note">Todavía no hay partidas registradas.</div>`;
+    return;
+  }
+  cont.innerHTML = asientos.map(a => {
+    const sc = a.cargos.reduce((s,l)=>s+l.importe,0);
+    const filasC = a.cargos.map(l => `<div class="linea-cuenta"><span>${nombreCuenta(l.codigo)}</span><span>${fmt(l.importe)}</span></div>`).join('');
+    const filasA = a.abonos.map(l => `<div class="linea-cuenta contra"><span>${nombreCuenta(l.codigo)}</span><span>${fmt(l.importe)}</span></div>`).join('');
+    return `
+      <div class="asiento-block">
+        <div class="meta">
+          <span>Partida #${a.id} · ${a.fecha}</span>
+          <button class="btn danger small" onclick="borrarAsiento(${a.id})">Borrar</button>
+        </div>
+        <div style="font-size:.85rem; margin-bottom:8px;">${a.concepto}</div>
+        ${filasC}
+        ${filasA}
+        <div class="linea-cuenta subtotal"><span>Sumas iguales</span><span>${fmt(sc)}</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================================================
+   MAYOR
+   ============================================================ */
+function renderMayor(){
+  const cont = document.getElementById('contenedor-mayor');
+  const cuentasConMovimiento = cuentas.filter(c => {
+    const {cargo, abono} = movimientosCuenta(c.codigo);
+    return cargo > 0 || abono > 0;
+  }).sort((a,b) => a.codigo.localeCompare(b.codigo));
+
+  if(cuentasConMovimiento.length === 0){
+    cont.innerHTML = `<div class="empty-note">No hay movimientos en el Diario todavía.</div>`;
+    return;
+  }
+
+  cont.innerHTML = cuentasConMovimiento.map(c => {
+    const {cargo, abono, detalle} = movimientosCuenta(c.codigo);
+    const saldo = saldoNormal(c);
+    const filas = detalle.map(d => `
+      <tr>
+        <td>${d.fecha}</td>
+        <td style="font-family:'Lora',serif;">${d.concepto}</td>
+        <td class="num">${d.cargo ? fmt(d.cargo) : ''}</td>
+        <td class="num">${d.abono ? fmt(d.abono) : ''}</td>
+      </tr>
+    `).join('');
+    return `
+      <div class="mayor-account">
+        <div class="head">
+          <span>${c.codigo} · ${c.nombre} <span class="tag ${c.grupo}">${c.grupo}</span></span>
+          <span>Saldo ${c.naturaleza === 'Deudora' ? 'Deudor' : 'Acreedor'}: ${fmt(saldo)}</span>
+        </div>
+        <table class="ledger">
+          <thead><tr><th>Fecha</th><th>Concepto</th><th class="num">Cargo</th><th class="num">Abono</th></tr></thead>
+          <tbody>${filas}</tbody>
+          <tfoot>
+            <tr><td colspan="2">Sumas</td><td class="num">${fmt(cargo)}</td><td class="num">${fmt(abono)}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================================================
+   BALANCE DE COMPROBACION
+   ============================================================ */
+function renderBalanceComprobacion(){
+  const cont = document.getElementById('contenedor-bcomp');
+  const filas = cuentas.map(c => {
+    const {cargo, abono} = movimientosCuenta(c.codigo);
+    if(cargo === 0 && abono === 0) return null;
+    const saldo = cargo - abono; // positivo = deudor, negativo = acreedor
+    return {
+      codigo: c.codigo, nombre: c.nombre, grupo: c.grupo,
+      cargo, abono,
+      saldoDeudor: saldo > 0 ? saldo : 0,
+      saldoAcreedor: saldo < 0 ? -saldo : 0
+    };
+  }).filter(Boolean);
+
+  if(filas.length === 0){
+    cont.innerHTML = `<div class="empty-note">No hay movimientos en el Diario todavía.</div>`;
+    return;
+  }
+
+  const totalCargo = filas.reduce((s,f)=>s+f.cargo,0);
+  const totalAbono = filas.reduce((s,f)=>s+f.abono,0);
+  const totalSD = filas.reduce((s,f)=>s+f.saldoDeudor,0);
+  const totalSA = filas.reduce((s,f)=>s+f.saldoAcreedor,0);
+  const cuadraSumas = Math.abs(totalCargo - totalAbono) < 0.01;
+  const cuadraSaldos = Math.abs(totalSD - totalSA) < 0.01;
+
+  cont.innerHTML = `
+    <div class="balance-check ${cuadraSumas && cuadraSaldos ? 'ok' : 'bad'}">
+      <span class="dot"></span>
+      ${cuadraSumas && cuadraSaldos ? 'Sumas y saldos cuadrados' : 'Atención: sumas o saldos no cuadran'}
+    </div>
+    <table class="ledger">
+      <thead><tr><th>Código</th><th>Cuenta</th><th class="num">Cargos</th><th class="num">Abonos</th><th class="num">Deudor</th><th class="num">Acreedor</th></tr></thead>
+      <tbody>
+        ${filas.map(f => `
+          <tr>
+            <td>${f.codigo}</td>
+            <td style="font-family:'Lora',serif;">${f.nombre}</td>
+            <td class="num">${fmt(f.cargo)}</td>
+            <td class="num">${fmt(f.abono)}</td>
+            <td class="num">${f.saldoDeudor ? fmt(f.saldoDeudor) : ''}</td>
+            <td class="num">${f.saldoAcreedor ? fmt(f.saldoAcreedor) : ''}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Totales</td>
+          <td class="num">${fmt(totalCargo)}</td>
+          <td class="num">${fmt(totalAbono)}</td>
+          <td class="num">${fmt(totalSD)}</td>
+          <td class="num">${fmt(totalSA)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+}
+
+/* ============================================================
+   ESTADO DE RESULTADOS
+   ============================================================ */
+function calcularResultados(){
+  const ingresos = cuentas.filter(c => c.grupo === 'Ingreso').map(c => {
+    const saldo = saldoNormal(c);
+    const impacto = c.naturaleza === 'Acreedora' ? saldo : -saldo;
+    return {...c, saldo, impacto};
+  }).filter(c => movimientosCuenta(c.codigo).cargo > 0 || movimientosCuenta(c.codigo).abono > 0);
+
+  const gastos = cuentas.filter(c => c.grupo === 'Gasto').map(c => {
+    const saldo = saldoNormal(c);
+    const impacto = c.naturaleza === 'Deudora' ? saldo : -saldo;
+    return {...c, saldo, impacto};
+  }).filter(c => movimientosCuenta(c.codigo).cargo > 0 || movimientosCuenta(c.codigo).abono > 0);
+
+  const totalIngresos = ingresos.reduce((s,c) => s + c.impacto, 0);
+  const totalGastos = gastos.reduce((s,c) => s + c.impacto, 0);
+  const utilidad = totalIngresos - totalGastos;
+
+  return {ingresos, gastos, totalIngresos, totalGastos, utilidad};
+}
+
+function renderEstadoResultados(){
+  const cont = document.getElementById('contenedor-eresultados');
+  const {ingresos, gastos, totalIngresos, totalGastos, utilidad} = calcularResultados();
+
+  if(ingresos.length === 0 && gastos.length === 0){
+    cont.innerHTML = `<div class="empty-note">No hay movimientos de Ingresos o Gastos todavía.</div>`;
+    return;
+  }
+
+  const filaIngreso = c => `<div class="linea-cuenta ${c.naturaleza==='Deudora' ? 'contra' : ''}"><span>${c.naturaleza==='Deudora' ? '(-) ' : ''}${c.nombre}</span><span>${fmt(c.impacto)}</span></div>`;
+  const filaGasto = c => `<div class="linea-cuenta ${c.naturaleza==='Acreedora' ? 'contra' : ''}"><span>${c.naturaleza==='Acreedora' ? '(-) ' : ''}${c.nombre}</span><span>${fmt(c.impacto)}</span></div>`;
+
+  cont.innerHTML = `
+    <div class="partida-financiera">
+      <h4>Ingresos</h4>
+      ${ingresos.map(filaIngreso).join('') || '<div class="empty-note">Sin movimientos</div>'}
+      <div class="linea-cuenta subtotal"><span>Total de Ingresos</span><span>${fmt(totalIngresos)}</span></div>
+    </div>
+    <div class="partida-financiera">
+      <h4>Costos y Gastos</h4>
+      ${gastos.map(filaGasto).join('') || '<div class="empty-note">Sin movimientos</div>'}
+      <div class="linea-cuenta subtotal"><span>Total de Costos y Gastos</span><span>${fmt(totalGastos)}</span></div>
+    </div>
+    <div class="resultado-final ${utilidad >= 0 ? 'utilidad' : 'perdida'}">
+      <span>${utilidad >= 0 ? 'Utilidad del Ejercicio' : 'Pérdida del Ejercicio'}</span>
+      <span>${fmt(Math.abs(utilidad))}</span>
+    </div>
+  `;
+}
+
+/* ============================================================
+   BALANCE GENERAL
+   ============================================================ */
+function calcularBalanceGeneral(){
+  const activos = cuentas.filter(c => c.grupo === 'Activo').map(c => {
+    const saldo = saldoNormal(c);
+    const impacto = c.naturaleza === 'Deudora' ? saldo : -saldo;
+    return {...c, impacto};
+  }).filter(c => movimientosCuenta(c.codigo).cargo > 0 || movimientosCuenta(c.codigo).abono > 0);
+
+  const pasivos = cuentas.filter(c => c.grupo === 'Pasivo').map(c => {
+    const saldo = saldoNormal(c);
+    const impacto = c.naturaleza === 'Acreedora' ? saldo : -saldo;
+    return {...c, impacto};
+  }).filter(c => movimientosCuenta(c.codigo).cargo > 0 || movimientosCuenta(c.codigo).abono > 0);
+
+  const capitales = cuentas.filter(c => c.grupo === 'Capital').map(c => {
+    const saldo = saldoNormal(c);
+    const impacto = c.naturaleza === 'Acreedora' ? saldo : -saldo;
+    return {...c, impacto};
+  }).filter(c => movimientosCuenta(c.codigo).cargo > 0 || movimientosCuenta(c.codigo).abono > 0);
+
+  const totalActivo = activos.reduce((s,c) => s + c.impacto, 0);
+  const totalPasivo = pasivos.reduce((s,c) => s + c.impacto, 0);
+  const totalCapitalCuentas = capitales.reduce((s,c) => s + c.impacto, 0);
+  const {utilidad} = calcularResultados();
+  const totalCapital = totalCapitalCuentas + utilidad;
+  const totalPasivoCapital = totalPasivo + totalCapital;
+
+  return {activos, pasivos, capitales, totalActivo, totalPasivo, totalCapitalCuentas, utilidad, totalCapital, totalPasivoCapital};
+}
+
+function renderBalanceGeneral(){
+  const cont = document.getElementById('contenedor-bgeneral');
+  const r = calcularBalanceGeneral();
+
+  if(r.activos.length === 0 && r.pasivos.length === 0 && r.capitales.length === 0){
+    cont.innerHTML = `<div class="empty-note">No hay movimientos todavía.</div>`;
+    return;
+  }
+
+  const cuadrado = Math.abs(r.totalActivo - r.totalPasivoCapital) < 0.01;
+
+  cont.innerHTML = `
+    <div class="balance-check ${cuadrado ? 'ok' : 'bad'}">
+      <span class="dot"></span>
+      ${cuadrado ? 'Activo = Pasivo + Capital · Balance cuadrado' : 'Atención: el Activo no coincide con Pasivo + Capital'}
+    </div>
+    <div class="bg-columns">
+      <div class="partida-financiera">
+        <h4>Activo</h4>
+        ${r.activos.map(c => `<div class="linea-cuenta"><span>${c.nombre}</span><span>${fmt(c.impacto)}</span></div>`).join('') || '<div class="empty-note">Sin movimientos</div>'}
+        <div class="linea-cuenta subtotal"><span>Total Activo</span><span>${fmt(r.totalActivo)}</span></div>
+      </div>
+      <div>
+        <div class="partida-financiera">
+          <h4>Pasivo</h4>
+          ${r.pasivos.map(c => `<div class="linea-cuenta"><span>${c.nombre}</span><span>${fmt(c.impacto)}</span></div>`).join('') || '<div class="empty-note">Sin movimientos</div>'}
+          <div class="linea-cuenta subtotal"><span>Total Pasivo</span><span>${fmt(r.totalPasivo)}</span></div>
+        </div>
+        <div class="partida-financiera">
+          <h4>Capital</h4>
+          ${r.capitales.map(c => `<div class="linea-cuenta"><span>${c.nombre}</span><span>${fmt(c.impacto)}</span></div>`).join('') || '<div class="empty-note">Sin movimientos</div>'}
+          <div class="linea-cuenta"><span>${r.utilidad >= 0 ? 'Utilidad' : 'Pérdida'} del Ejercicio</span><span>${fmt(r.utilidad)}</span></div>
+          <div class="linea-cuenta subtotal"><span>Total Capital</span><span>${fmt(r.totalCapital)}</span></div>
+        </div>
+        <div class="linea-cuenta subtotal" style="border-top:2px solid var(--ink);"><span>Total Pasivo + Capital</span><span>${fmt(r.totalPasivoCapital)}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   CUADRE GENERAL
+   ============================================================ */
+function renderCuadre(){
+  const cont = document.getElementById('contenedor-cuadre');
+
+  const totalCargosDiario = asientos.reduce((s,a) => s + a.cargos.reduce((x,l)=>x+l.importe,0), 0);
+  const totalAbonosDiario = asientos.reduce((s,a) => s + a.abonos.reduce((x,l)=>x+l.importe,0), 0);
+  const diarioOk = asientos.length > 0 && Math.abs(totalCargosDiario - totalAbonosDiario) < 0.01;
+
+  const filasBC = cuentas.map(c => {
+    const {cargo, abono} = movimientosCuenta(c.codigo);
+    return {cargo, abono};
+  });
+  const totalCargoBC = filasBC.reduce((s,f)=>s+f.cargo,0);
+  const totalAbonoBC = filasBC.reduce((s,f)=>s+f.abono,0);
+  const bcOk = asientos.length > 0 && Math.abs(totalCargoBC - totalAbonoBC) < 0.01;
+
+  const bg = calcularBalanceGeneral();
+  const bgOk = asientos.length > 0 && Math.abs(bg.totalActivo - bg.totalPasivoCapital) < 0.01;
+
+  const todoOk = diarioOk && bcOk && bgOk;
+
+  cont.innerHTML = `
+    <div class="balance-check ${todoOk ? 'ok' : 'bad'}" style="font-size:1rem;">
+      <span class="dot"></span>
+      ${asientos.length === 0 ? 'Aún no hay partidas registradas' : (todoOk ? 'Todos los Estados Financieros están cuadrados' : 'Hay estados financieros sin cuadrar')}
+    </div>
+
+    <div class="checklist-item ${diarioOk ? 'ok' : 'bad'}">
+      <span>Diario: sumas de cargos (${fmt(totalCargosDiario)}) contra abonos (${fmt(totalAbonosDiario)})</span>
+      <span class="status">${diarioOk ? '✓ Cuadrado' : '✗ No cuadra'}</span>
+    </div>
+    <div class="checklist-item ${bcOk ? 'ok' : 'bad'}">
+      <span>Balance de Comprobación: sumas cargos (${fmt(totalCargoBC)}) contra abonos (${fmt(totalAbonoBC)})</span>
+      <span class="status">${bcOk ? '✓ Cuadrado' : '✗ No cuadra'}</span>
+    </div>
+    <div class="checklist-item ${bgOk ? 'ok' : 'bad'}">
+      <span>Balance General: Activo (${fmt(bg.totalActivo)}) contra Pasivo + Capital (${fmt(bg.totalPasivoCapital)})</span>
+      <span class="status">${bgOk ? '✓ Cuadrado' : '✗ No cuadra'}</span>
+    </div>
+  `;
+}
+
+/* ============================================================
+   NUEVO EJERCICIO
+   ============================================================ */
+function nuevoEjercicio(){
+  if(!confirm('Esto eliminará todas las partidas del Diario y reiniciará el Mayor y los estados financieros. ¿Continuar?')) return;
+  asientos = [];
+  contadorAsientos = 1;
+  renderListaAsientos();
+  renderMayor();
+  renderBalanceComprobacion();
+  renderEstadoResultados();
+  renderBalanceGeneral();
+  renderCuadre();
+  document.querySelector('nav.tabs button[data-tab="diario"]').click();
+  alert('Nuevo ejercicio iniciado. El catálogo de cuentas se conservó.');
+}
+
+/* ============================================================
+   EXPORTAR A EXCEL
+   ============================================================ */
+function descargarAOA(aoa, nombreArchivo, nombreHoja){
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, nombreHoja || 'Hoja1');
+  XLSX.writeFile(wb, nombreArchivo);
+}
+
+function exportarDiario(){
+  const aoa = [['Partida','Fecha','Concepto','Cuenta','Cargo','Abono']];
+  asientos.forEach(a => {
+    a.cargos.forEach(l => aoa.push([a.id, a.fecha, a.concepto, nombreCuenta(l.codigo), l.importe, '']));
+    a.abonos.forEach(l => aoa.push([a.id, a.fecha, a.concepto, nombreCuenta(l.codigo), '', l.importe]));
+  });
+  if(aoa.length === 1){ alert('No hay partidas para exportar.'); return; }
+  descargarAOA(aoa, 'diario.xlsx', 'Diario');
+}
+
+function exportarMayor(){
+  const cuentasConMovimiento = cuentas.filter(c => {
+    const {cargo, abono} = movimientosCuenta(c.codigo);
+    return cargo > 0 || abono > 0;
+  });
+  if(cuentasConMovimiento.length === 0){ alert('No hay movimientos para exportar.'); return; }
+  const aoa = [['Cuenta','Fecha','Concepto','Cargo','Abono','Saldo de la cuenta']];
+  cuentasConMovimiento.forEach(c => {
+    const {detalle} = movimientosCuenta(c.codigo);
+    const saldo = saldoNormal(c);
+    detalle.forEach((d,i) => {
+      aoa.push([i===0 ? (c.codigo+' · '+c.nombre) : '', d.fecha, d.concepto, d.cargo || '', d.abono || '', i===0 ? saldo : '']);
+    });
+  });
+  descargarAOA(aoa, 'libro_mayor.xlsx', 'Mayor');
+}
+
+function exportarBalanceComprobacion(){
+  const filas = cuentas.map(c => {
+    const {cargo, abono} = movimientosCuenta(c.codigo);
+    if(cargo === 0 && abono === 0) return null;
+    const saldo = cargo - abono;
+    return [c.codigo, c.nombre, cargo, abono, saldo > 0 ? saldo : '', saldo < 0 ? -saldo : ''];
+  }).filter(Boolean);
+  if(filas.length === 0){ alert('No hay movimientos para exportar.'); return; }
+  const aoa = [['Código','Cuenta','Cargos','Abonos','Saldo Deudor','Saldo Acreedor'], ...filas];
+  descargarAOA(aoa, 'balance_comprobacion.xlsx', 'Bal. Comprobación');
+}
+
+function exportarEstadoResultados(){
+  const {ingresos, gastos, totalIngresos, totalGastos, utilidad} = calcularResultados();
+  if(ingresos.length === 0 && gastos.length === 0){ alert('No hay movimientos para exportar.'); return; }
+  const aoa = [['Estado de Resultados'], [], ['Ingresos']];
+  ingresos.forEach(c => aoa.push([(c.naturaleza==='Deudora'?'(-) ':'') + c.nombre, c.impacto]));
+  aoa.push(['Total de Ingresos', totalIngresos], [], ['Costos y Gastos']);
+  gastos.forEach(c => aoa.push([(c.naturaleza==='Acreedora'?'(-) ':'') + c.nombre, c.impacto]));
+  aoa.push(['Total de Costos y Gastos', totalGastos], [], [utilidad >= 0 ? 'Utilidad del Ejercicio' : 'Pérdida del Ejercicio', Math.abs(utilidad)]);
+  descargarAOA(aoa, 'estado_de_resultados.xlsx', 'Edo. Resultados');
+}
+
+function exportarBalanceGeneral(){
+  const r = calcularBalanceGeneral();
+  if(r.activos.length === 0 && r.pasivos.length === 0 && r.capitales.length === 0){ alert('No hay movimientos para exportar.'); return; }
+  const aoa = [['Balance General'], [], ['Activo']];
+  r.activos.forEach(c => aoa.push([c.nombre, c.impacto]));
+  aoa.push(['Total Activo', r.totalActivo], [], ['Pasivo']);
+  r.pasivos.forEach(c => aoa.push([c.nombre, c.impacto]));
+  aoa.push(['Total Pasivo', r.totalPasivo], [], ['Capital']);
+  r.capitales.forEach(c => aoa.push([c.nombre, c.impacto]));
+  aoa.push([r.utilidad >= 0 ? 'Utilidad del Ejercicio' : 'Pérdida del Ejercicio', r.utilidad]);
+  aoa.push(['Total Capital', r.totalCapital], [], ['Total Pasivo + Capital', r.totalPasivoCapital]);
+  descargarAOA(aoa, 'balance_general.xlsx', 'Bal. General');
+}
+
+/* ============================================================
+   INICIALIZACION
+   ============================================================ */
+function init(){
+  renderCatalogo();
+  agregarLinea('cargo');
+  agregarLinea('abono');
+  poblarSelectsCuentas();
+  actualizarSumas();
+  renderListaAsientos();
+  const hoy = new Date().toISOString().slice(0,10);
+  document.getElementById('asiento-fecha').value = hoy;
+
+  // botón adicional: exportar diario, colocado junto a la lista de partidas
+  const contDiario = document.getElementById('tab-diario');
+  const botonExport = document.createElement('div');
+  botonExport.className = 'export-row';
+  botonExport.innerHTML = `<button class="btn gold" onclick="exportarDiario()">Descargar Diario en Excel</button>`;
+  contDiario.insertBefore(botonExport, contDiario.querySelector('h3'));
+}
+init();
+</script>
+</body>
+</html>
